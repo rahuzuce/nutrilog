@@ -183,6 +183,7 @@
     }
 
     .log-row {
+      position: relative;
       transition: transform 0.2s;
     }
 
@@ -199,27 +200,14 @@
     }
 
     .log-row td:first-child {
-      padding: 0 !important;
-      overflow: hidden;
-    }
-
-    .row-content-wrapper {
-      position: relative;
-      width: 100%;
-      display: flex;
-      align-items: center;
-    }
-
-    .row-content {
-      flex: 1;
-      padding: 10px 6px;
+      padding: 10px 6px !important;
     }
 
     .delete-btn {
       position: absolute;
       right: -70px;
       top: 0;
-      bottom: 0;
+      height: 100%;
       width: 70px;
       background: #cc3333;
       color: white;
@@ -227,12 +215,11 @@
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
-      transition: right 0.2s;
-      flex-shrink: 0;
+      z-index: 10;
     }
 
     .log-row.swiping .delete-btn {
-      right: 0;
+      /* Button slides with the row via transform on parent */
     }
 
     .item-name {
@@ -1216,26 +1203,24 @@
 
         row.innerHTML = `
           <td>
-            <div class="row-content-wrapper">
-              <div class="row-content">
-                <div class="item-name">${item.name}</div>
-                <span class="item-detail">${item.detail}</span>
-              </div>
-              <button class="delete-btn" data-index="${index}">Delete</button>
-            </div>
+            <div class="item-name">${item.name}</div>
+            <span class="item-detail">${item.detail}</span>
           </td>
           <td class="cal">${item.cal}</td>
-          <td class="protein">${item.p}</td>
-          <td class="carbs">${item.c}</td>
-          <td class="fat">${item.f}</td>
+          <td class="protein">${Math.round(item.p)}</td>
+          <td class="carbs">${Math.round(item.c)}</td>
+          <td class="fat">${Math.round(item.f)}</td>
         `;
 
-        // Add delete button click handler
-        const deleteBtn = row.querySelector('.delete-btn');
+        // Create and append delete button to row
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.textContent = 'Delete';
         deleteBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           deleteLogItem(index);
         });
+        row.appendChild(deleteBtn);
 
         setupSwipeToDelete(row);
         row.addEventListener('click', () => editLogItem(index));
@@ -1249,9 +1234,9 @@
       totalRow.innerHTML = `
         <td>TOTAL</td>
         <td class="cal">${total.cal}</td>
-        <td class="protein">${total.p}</td>
-        <td class="carbs">${total.c}</td>
-        <td class="fat">${total.f}</td>
+        <td class="protein">${Math.round(total.p)}</td>
+        <td class="carbs">${Math.round(total.c)}</td>
+        <td class="fat">${Math.round(total.f)}</td>
       `;
       tbody.appendChild(totalRow);
     }
@@ -1365,9 +1350,9 @@
 
         const scaled = scaleNutrition(item, quantity);
         document.getElementById('modalCal').textContent = scaled.cal;
-        document.getElementById('modalProtein').textContent = scaled.p;
-        document.getElementById('modalCarbs').textContent = scaled.c;
-        document.getElementById('modalFat').textContent = scaled.f;
+        document.getElementById('modalProtein').textContent = Math.round(scaled.p);
+        document.getElementById('modalCarbs').textContent = Math.round(scaled.c);
+        document.getElementById('modalFat').textContent = Math.round(scaled.f);
       }
 
       updateDisplay();
@@ -1438,9 +1423,9 @@
       function updateComboDisplay() {
         const total = calculateComboTotal(item, state.currentComboQuantities);
         document.getElementById('comboCal').textContent = total.cal;
-        document.getElementById('comboProtein').textContent = total.p;
-        document.getElementById('comboCarbs').textContent = total.c;
-        document.getElementById('comboFat').textContent = total.f;
+        document.getElementById('comboProtein').textContent = Math.round(total.p);
+        document.getElementById('comboCarbs').textContent = Math.round(total.c);
+        document.getElementById('comboFat').textContent = Math.round(total.f);
       }
 
       item.components.forEach((comp, index) => {
@@ -1655,11 +1640,6 @@
     // ============================================================================
 
     function openFinishDayModal() {
-      if (state.todayLog.length === 0) {
-        alert('Nothing to save');
-        return;
-      }
-
       const total = calculateTotal(state.todayLog);
       document.getElementById('confirmTotal').textContent = `${total.cal} cal`;
 
@@ -1714,9 +1694,9 @@
         row.innerHTML = `
           <td>${formatDisplayDate(entry.date)}</td>
           <td class="cal">${entry.cal}</td>
-          <td class="protein">${entry.p}</td>
-          <td class="carbs">${entry.c}</td>
-          <td class="fat">${entry.f}</td>
+          <td class="protein">${Math.round(entry.p)}</td>
+          <td class="carbs">${Math.round(entry.c)}</td>
+          <td class="fat">${Math.round(entry.f)}</td>
         `;
         tbody.appendChild(row);
       });
@@ -1741,9 +1721,9 @@
 
         const count = last7.length;
         const avgCal = Math.round(totalCal / count);
-        const avgP = Math.round((totalP / count) * 10) / 10;
-        const avgC = Math.round((totalC / count) * 10) / 10;
-        const avgF = Math.round((totalF / count) * 10) / 10;
+        const avgP = Math.round(totalP / count);
+        const avgC = Math.round(totalC / count);
+        const avgF = Math.round(totalF / count);
 
         avgBox.innerHTML = `
           <div class="avg-title">7-Day Rolling Average (${count} days)</div>
