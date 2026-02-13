@@ -644,6 +644,18 @@
       position: relative;
     }
 
+    .history-table .row-content-wrapper {
+      position: relative;
+      overflow: hidden;
+      height: 100%;
+      padding: 10px 6px;
+    }
+
+    .history-table .row-content {
+      position: relative;
+      z-index: 1;
+    }
+
     .history-row {
       position: relative;
       transition: transform 0.2s;
@@ -651,6 +663,10 @@
 
     .history-row.swiping {
       transform: translateX(-70px);
+    }
+
+    .history-row.swiping .delete-btn {
+      right: 0;
     }
 
     .history-row td {
@@ -829,7 +845,7 @@
       <button class="export-btn" id="exportCsvBtn">📤 Export CSV</button>
       <button class="export-btn" id="exportJsonBtn">📋 Copy All Data (JSON)</button>
     </div>
-    <div style="text-align: center; color: #555; font-size: 11px; padding: 16px 0 8px;">v1.1.0</div>
+    <div style="text-align: center; color: #555; font-size: 11px; padding: 16px 0 8px;">v1.1.1</div>
   </div>
 
   <!-- Single Item Modal -->
@@ -955,6 +971,43 @@
       <button class="close-btn" id="closeAllItems">✕</button>
     </div>
     <div class="all-items-list" id="allItemsList"></div>
+  </div>
+
+  <!-- Edit History Entry Modal -->
+  <div class="modal-overlay" id="editHistoryOverlay"></div>
+  <div class="modal" id="editHistoryModal">
+    <div class="modal-header">
+      <div class="modal-title">Edit History Entry</div>
+      <button class="close-btn" id="closeEditHistory">✕</button>
+    </div>
+    <div class="modal-body" style="padding: 16px;">
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 13px; color: #999; margin-bottom: 8px;">Date:</label>
+        <input type="date" id="editHistoryDate" style="width: 100%; padding: 10px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; color: #f0f0f0; font-size: 14px;">
+      </div>
+      <div class="macro-inputs">
+        <div class="form-group">
+          <label class="form-label">Calories</label>
+          <input type="number" class="form-input" id="editHistoryCal" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Protein (g)</label>
+          <input type="number" class="form-input" id="editHistoryProtein" value="0" min="0" step="0.1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Carbs (g)</label>
+          <input type="number" class="form-input" id="editHistoryCarbs" value="0" min="0" step="0.1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fat (g)</label>
+          <input type="number" class="form-input" id="editHistoryFat" value="0" min="0" step="0.1">
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; margin-top: 16px;">
+        <button class="log-btn" id="saveHistoryEdit" style="flex: 1;">Save Changes</button>
+        <button class="log-btn" id="deleteHistoryEdit" style="flex: 1; background: #cc3333;">Delete Entry</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -1830,10 +1883,66 @@
       }
     }
 
+    let editingHistoryDate = null; // Track which entry we're editing
+
     function editHistoryEntry(entry) {
-      // For now, just show a simple alert with the data
-      // In a future iteration, we could make this editable
-      alert(`Entry for ${formatDisplayDate(entry.date)}\n\nCalories: ${entry.cal}\nProtein: ${Math.round(entry.p)}g\nCarbs: ${Math.round(entry.c)}g\nFat: ${Math.round(entry.f)}g\n\n(Editing functionality coming soon)`);
+      editingHistoryDate = entry.date;
+
+      // Populate the modal fields
+      document.getElementById('editHistoryDate').value = entry.date;
+      document.getElementById('editHistoryCal').value = entry.cal;
+      document.getElementById('editHistoryProtein').value = entry.p;
+      document.getElementById('editHistoryCarbs').value = entry.c;
+      document.getElementById('editHistoryFat').value = entry.f;
+
+      // Show the modal
+      document.getElementById('editHistoryOverlay').classList.add('active');
+      document.getElementById('editHistoryModal').classList.add('active');
+    }
+
+    function saveHistoryEdit() {
+      const newDate = document.getElementById('editHistoryDate').value;
+      const cal = parseInt(document.getElementById('editHistoryCal').value) || 0;
+      const p = parseFloat(document.getElementById('editHistoryProtein').value) || 0;
+      const c = parseFloat(document.getElementById('editHistoryCarbs').value) || 0;
+      const f = parseFloat(document.getElementById('editHistoryFat').value) || 0;
+
+      // Check if date changed and if new date already exists
+      if (newDate !== editingHistoryDate) {
+        const existingEntry = state.history.find(entry => entry.date === newDate);
+        if (existingEntry) {
+          alert(`An entry for ${formatDisplayDate(newDate)} already exists. Please choose a different date or delete that entry first.`);
+          return;
+        }
+      }
+
+      // Find and update the entry
+      const entryIndex = state.history.findIndex(entry => entry.date === editingHistoryDate);
+      if (entryIndex !== -1) {
+        state.history[entryIndex] = {
+          date: newDate,
+          cal: cal,
+          p: p,
+          c: c,
+          f: f
+        };
+      }
+
+      saveToStorage();
+      renderHistory();
+      closeModal('editHistoryModal', 'editHistoryOverlay');
+      editingHistoryDate = null;
+    }
+
+    function deleteHistoryFromEdit() {
+      const confirmed = confirm(`Delete entry for ${formatDisplayDate(editingHistoryDate)}?`);
+      if (confirmed) {
+        state.history = state.history.filter(entry => entry.date !== editingHistoryDate);
+        saveToStorage();
+        renderHistory();
+        closeModal('editHistoryModal', 'editHistoryOverlay');
+        editingHistoryDate = null;
+      }
     }
 
     function exportCSV() {
@@ -1890,6 +1999,7 @@
     document.getElementById('closeComboItem').addEventListener('click', () => closeModal('comboItemModal', 'comboItemOverlay'));
     document.getElementById('closeCustomEntry').addEventListener('click', () => closeModal('customEntryModal', 'customEntryOverlay'));
     document.getElementById('closeAllItems').addEventListener('click', () => closeModal('allItemsModal', 'allItemsOverlay'));
+    document.getElementById('closeEditHistory').addEventListener('click', () => closeModal('editHistoryModal', 'editHistoryOverlay'));
 
     document.getElementById('deleteCustomItem').addEventListener('click', () => {
       if (!state.currentItem || !state.currentItem.id.startsWith('custom-')) return;
@@ -1913,6 +2023,10 @@
 
     document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
     document.getElementById('exportJsonBtn').addEventListener('click', exportJSON);
+
+    document.getElementById('saveHistoryEdit').addEventListener('click', saveHistoryEdit);
+    document.getElementById('deleteHistoryEdit').addEventListener('click', deleteHistoryFromEdit);
+    document.getElementById('editHistoryOverlay').addEventListener('click', () => closeModal('editHistoryModal', 'editHistoryOverlay'));
 
     // ============================================================================
     // INITIALIZATION
