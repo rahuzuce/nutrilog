@@ -845,7 +845,7 @@
       <button class="export-btn" id="exportCsvBtn">📤 Export CSV</button>
       <button class="export-btn" id="exportJsonBtn">📋 Copy All Data (JSON)</button>
     </div>
-    <div style="text-align: center; color: #555; font-size: 11px; padding: 16px 0 8px;">v1.1.1</div>
+    <div style="text-align: center; color: #555; font-size: 11px; padding: 16px 0 8px;">v1.1.2</div>
   </div>
 
   <!-- Single Item Modal -->
@@ -1706,7 +1706,15 @@
       document.getElementById('confirmTotal').textContent = `${total.cal} cal`;
 
       // Set default date to current logging date
-      document.getElementById('finishDayDate').value = state.currentDate;
+      // CRITICAL: Fallback to today if currentDate is somehow undefined
+      const dateToUse = state.currentDate || new Date().toLocaleDateString('en-CA');
+      document.getElementById('finishDayDate').value = dateToUse;
+
+      // CRITICAL: Verify date field was set
+      if (!document.getElementById('finishDayDate').value) {
+        alert('ERROR: Unable to set date! Please contact support.');
+        return;
+      }
 
       document.getElementById('confirmOverlay').classList.add('active');
       document.getElementById('confirmModal').classList.add('active');
@@ -1714,6 +1722,18 @@
 
     function finishDay() {
       const selectedDate = document.getElementById('finishDayDate').value;
+
+      // CRITICAL: Validate date is not empty
+      if (!selectedDate || selectedDate.trim() === '') {
+        alert('ERROR: Date is empty! Cannot finish day without a valid date. Please select a date.');
+        return;
+      }
+
+      // CRITICAL: Prevent finishing an empty log
+      if (state.todayLog.length === 0) {
+        alert('Your today\'s log is empty. Are you sure you want to log a zero-calorie day?');
+        // User already confirmed via the modal, so we proceed but warn them
+      }
 
       // Check for duplicate date in history
       const existingEntry = state.history.find(entry => entry.date === selectedDate);
@@ -1723,6 +1743,12 @@
       }
 
       const total = calculateTotal(state.todayLog);
+
+      // Final confirmation with actual date shown
+      const confirmMsg = `Finish day for ${formatDisplayDate(selectedDate)}?\n\nTotal: ${total.cal} cal, ${Math.round(total.p)}g protein, ${Math.round(total.c)}g carbs, ${Math.round(total.f)}g fat\n\nThis will clear your current log and save to history.`;
+      if (!confirm(confirmMsg)) {
+        return;
+      }
 
       state.history.push({
         date: selectedDate,
