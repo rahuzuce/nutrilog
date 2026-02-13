@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v1.0.8';
+const CACHE_VERSION = 'v1.1.0';
 const CACHE_NAME = `nutrilog-${CACHE_VERSION}`;
 
 const urlsToCache = [

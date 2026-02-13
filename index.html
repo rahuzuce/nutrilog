@@ -640,6 +640,25 @@
 
     .history-table td:first-child {
       text-align: left;
+      padding: 0 !important;
+      position: relative;
+    }
+
+    .history-row {
+      position: relative;
+      transition: transform 0.2s;
+    }
+
+    .history-row.swiping {
+      transform: translateX(-70px);
+    }
+
+    .history-row td {
+      cursor: pointer;
+    }
+
+    .history-row:active td {
+      background: #1a1a1a;
     }
 
     .avg-box {
@@ -810,7 +829,7 @@
       <button class="export-btn" id="exportCsvBtn">📤 Export CSV</button>
       <button class="export-btn" id="exportJsonBtn">📋 Copy All Data (JSON)</button>
     </div>
-    <div style="text-align: center; color: #555; font-size: 11px; padding: 16px 0 8px;">v1.0.7</div>
+    <div style="text-align: center; color: #555; font-size: 11px; padding: 16px 0 8px;">v1.1.0</div>
   </div>
 
   <!-- Single Item Modal -->
@@ -917,6 +936,10 @@
     <div class="confirm-modal-content">
       <div class="modal-title">Finish Day?</div>
       <div class="confirm-total" id="confirmTotal">0 cal</div>
+      <div style="margin: 16px 0;">
+        <label style="display: block; font-size: 13px; color: #999; margin-bottom: 8px;">Select Date:</label>
+        <input type="date" id="finishDayDate" style="width: 100%; padding: 10px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; color: #f0f0f0; font-size: 14px;">
+      </div>
       <div class="confirm-buttons">
         <button class="confirm-btn cancel" id="cancelFinish">Cancel</button>
         <button class="confirm-btn confirm" id="confirmFinish">Yes, Finish</button>
@@ -1070,37 +1093,11 @@
     }
 
     // ============================================================================
-    // DATE ROLLOVER CHECK
+    // DATE DISPLAY
     // ============================================================================
 
-    function checkDateRollover() {
-      const today = new Date().toLocaleDateString('en-CA');
-
-      if (state.currentDate !== today) {
-        if (state.todayLog.length > 0) {
-          const total = calculateTotal(state.todayLog);
-          const confirmed = confirm(
-            `You have unfinished items from ${state.currentDate} (${total.cal} cal). Save to history and start fresh?`
-          );
-
-          if (confirmed) {
-            state.history.push({
-              date: state.currentDate,
-              cal: total.cal,
-              p: total.p,
-              c: total.c,
-              f: total.f
-            });
-          }
-        }
-
-        state.todayLog = [];
-        state.currentDate = today;
-        saveToStorage();
-        renderLog();
-      }
-
-      document.getElementById('currentDate').textContent = formatDisplayDate(today);
+    function updateDateDisplay() {
+      document.getElementById('currentDate').textContent = formatDisplayDate(state.currentDate);
     }
 
     function formatDisplayDate(dateStr) {
@@ -1655,15 +1652,27 @@
       const total = calculateTotal(state.todayLog);
       document.getElementById('confirmTotal').textContent = `${total.cal} cal`;
 
+      // Set default date to current logging date
+      document.getElementById('finishDayDate').value = state.currentDate;
+
       document.getElementById('confirmOverlay').classList.add('active');
       document.getElementById('confirmModal').classList.add('active');
     }
 
     function finishDay() {
+      const selectedDate = document.getElementById('finishDayDate').value;
+
+      // Check for duplicate date in history
+      const existingEntry = state.history.find(entry => entry.date === selectedDate);
+      if (existingEntry) {
+        alert(`An entry for ${formatDisplayDate(selectedDate)} already exists in history. Please delete it first or choose a different date.`);
+        return;
+      }
+
       const total = calculateTotal(state.todayLog);
 
       state.history.push({
-        date: state.currentDate,
+        date: selectedDate,
         cal: total.cal,
         p: total.p,
         c: total.c,
@@ -1675,7 +1684,7 @@
 
       saveToStorage();
       renderLog();
-      checkDateRollover();
+      updateDateDisplay();
 
       closeModal('confirmModal', 'confirmOverlay');
     }
@@ -1701,15 +1710,37 @@
 
       const sortedHistory = [...state.history].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-      sortedHistory.forEach(entry => {
+      sortedHistory.forEach((entry, displayIndex) => {
         const row = document.createElement('tr');
+        row.className = 'history-row';
+        row.dataset.date = entry.date;
+
         row.innerHTML = `
-          <td>${formatDisplayDate(entry.date)}</td>
+          <td>
+            <div class="row-content-wrapper">
+              <div class="row-content">${formatDisplayDate(entry.date)}</div>
+              <button class="delete-btn" data-date="${entry.date}">Delete</button>
+            </div>
+          </td>
           <td class="cal">${entry.cal}</td>
           <td class="protein">${Math.round(entry.p)}</td>
           <td class="carbs">${Math.round(entry.c)}</td>
           <td class="fat">${Math.round(entry.f)}</td>
         `;
+
+        // Add delete button click handler
+        const deleteBtn = row.querySelector('.delete-btn');
+        deleteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteHistoryEntry(entry.date);
+        });
+
+        // Add swipe-to-delete
+        setupSwipeToDeleteHistory(row);
+
+        // Add click-to-edit (will implement later)
+        row.addEventListener('click', () => editHistoryEntry(entry));
+
         tbody.appendChild(row);
       });
 
@@ -1761,6 +1792,48 @@
       } else {
         avgBox.innerHTML = '';
       }
+    }
+
+    function setupSwipeToDeleteHistory(row) {
+      let startX = 0;
+      let currentX = 0;
+      let isSwiping = false;
+
+      row.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        isSwiping = true;
+      });
+
+      row.addEventListener('touchmove', (e) => {
+        if (!isSwiping) return;
+        currentX = e.touches[0].clientX;
+        const diff = startX - currentX;
+
+        if (diff > 30) {
+          row.classList.add('swiping');
+        } else {
+          row.classList.remove('swiping');
+        }
+      });
+
+      row.addEventListener('touchend', () => {
+        isSwiping = false;
+      });
+    }
+
+    function deleteHistoryEntry(date) {
+      const confirmed = confirm(`Delete entry for ${formatDisplayDate(date)}?`);
+      if (confirmed) {
+        state.history = state.history.filter(entry => entry.date !== date);
+        saveToStorage();
+        renderHistory();
+      }
+    }
+
+    function editHistoryEntry(entry) {
+      // For now, just show a simple alert with the data
+      // In a future iteration, we could make this editable
+      alert(`Entry for ${formatDisplayDate(entry.date)}\n\nCalories: ${entry.cal}\nProtein: ${Math.round(entry.p)}g\nCarbs: ${Math.round(entry.c)}g\nFat: ${Math.round(entry.f)}g\n\n(Editing functionality coming soon)`);
     }
 
     function exportCSV() {
@@ -1846,7 +1919,7 @@
     // ============================================================================
 
     loadFromStorage();
-    checkDateRollover();
+    updateDateDisplay();
     renderTiles();
     renderLog();
 
