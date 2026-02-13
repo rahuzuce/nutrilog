@@ -183,9 +183,7 @@
     }
 
     .log-row {
-      position: relative;
       transition: transform 0.2s;
-      overflow: hidden;
     }
 
     .log-row.swiping {
@@ -200,11 +198,28 @@
       background: #1a1a1a;
     }
 
+    .log-row td:first-child {
+      padding: 0 !important;
+      overflow: hidden;
+    }
+
+    .row-content-wrapper {
+      position: relative;
+      width: 100%;
+      display: flex;
+      align-items: center;
+    }
+
+    .row-content {
+      flex: 1;
+      padding: 10px 6px;
+    }
+
     .delete-btn {
       position: absolute;
       right: -70px;
       top: 0;
-      height: 100%;
+      bottom: 0;
       width: 70px;
       background: #cc3333;
       color: white;
@@ -213,6 +228,7 @@
       font-weight: 600;
       cursor: pointer;
       transition: right 0.2s;
+      flex-shrink: 0;
     }
 
     .log-row.swiping .delete-btn {
@@ -1200,8 +1216,13 @@
 
         row.innerHTML = `
           <td>
-            <div class="item-name">${item.name}</div>
-            <span class="item-detail">${item.detail}</span>
+            <div class="row-content-wrapper">
+              <div class="row-content">
+                <div class="item-name">${item.name}</div>
+                <span class="item-detail">${item.detail}</span>
+              </div>
+              <button class="delete-btn" data-index="${index}">Delete</button>
+            </div>
           </td>
           <td class="cal">${item.cal}</td>
           <td class="protein">${item.p}</td>
@@ -1209,17 +1230,14 @@
           <td class="fat">${item.f}</td>
         `;
 
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-btn';
-        deleteBtn.textContent = 'Delete';
+        // Add delete button click handler
+        const deleteBtn = row.querySelector('.delete-btn');
         deleteBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           deleteLogItem(index);
         });
 
-        row.appendChild(deleteBtn);
         setupSwipeToDelete(row);
-
         row.addEventListener('click', () => editLogItem(index));
 
         tbody.appendChild(row);
