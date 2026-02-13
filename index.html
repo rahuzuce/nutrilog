@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NutriLog">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>NutriLog</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #f0f0f0;
+      overflow-x: hidden;
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      user-select: none;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    input, textarea {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 16px;
+      background: #111;
+      border-bottom: 1px solid #222;
+      height: 36px;
+    }
+
+    .header h1 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .header .date {
+      font-size: 13px;
+      color: #999;
+    }
+
+    .category-label {
+      font-size: 12px;
+      color: #888;
+      padding: 12px 16px 6px;
+      font-weight: 500;
+    }
+
+    .tiles-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 0 8px 8px;
+    }
+
+    .tiles-grid.two-col {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .tile {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      height: 46px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .tile:active {
+      transform: scale(0.96);
+      background: #252525;
+    }
+
+    .tile-name {
+      font-size: 11px;
+      font-weight: 500;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tile-cal {
+      font-size: 10px;
+      color: #e8c547;
+    }
+
+    .tile.coffee { background: #1a1512; border-color: #3a2a1a; }
+    .tile.fruits { background: #141a12; border-color: #2a3a1a; }
+    .tile.meals { background: #1a1518; border-color: #3a2a2a; }
+    .tile.dairy { background: #12151a; border-color: #1a2a3a; }
+    .tile.icecream { background: #1a1419; border-color: #3a1a2a; }
+    .tile.snacks { background: #1a1712; border-color: #3a2a1a; }
+    .tile.sports { background: #121a18; border-color: #1a3a2a; }
+    .tile.sides { background: #1a1614; border-color: #3a2a22; }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+    }
+
+    .action-btn {
+      flex: 1;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 10px;
+      color: #f0f0f0;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .action-btn:active {
+      background: #252525;
+    }
+
+    .log-section {
+      padding: 0 16px 16px;
+    }
+
+    .log-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #ccc;
+    }
+
+    .log-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      background: #111;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .log-table th {
+      background: #1a1a1a;
+      padding: 8px 6px;
+      text-align: right;
+      font-weight: 600;
+      font-size: 11px;
+      color: #999;
+    }
+
+    .log-table th:first-child {
+      text-align: left;
+    }
+
+    .log-table td {
+      padding: 10px 6px;
+      text-align: right;
+      border-top: 1px solid #1a1a1a;
+    }
+
+    .log-table td:first-child {
+      text-align: left;
+    }
+
+    .log-row {
+      position: relative;
+      transition: transform 0.2s;
+    }
+
+    .log-row.swiping {
+      transform: translateX(-70px);
+    }
+
+    .log-row td {
+      cursor: pointer;
+    }
+
+    .log-row:active td {
+      background: #1a1a1a;
+    }
+
+    .delete-btn {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 70px;
+      background: #cc3333;
+      color: white;
+      border: none;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .log-row.swiping .delete-btn {
+      opacity: 1;
+    }
+
+    .item-name {
+      font-weight: 500;
+    }
+
+    .item-detail {
+      font-size: 10px;
+      color: #777;
+      display: block;
+    }
+
+    .total-row {
+      font-weight: 700;
+      background: #1a1a1a !important;
+    }
+
+    .total-row td {
+      padding: 12px 6px;
+      border-top: 2px solid #333;
+    }
+
+    .cal { color: #e8c547; }
+    .protein { color: #7cb3f5; }
+    .carbs { color: #a8d8a8; }
+    .fat { color: #f5a87c; }
+
+    .footer-buttons {
+      display: flex;
+      gap: 8px;
+      padding: 16px;
+      background: #0a0a0a;
+      border-top: 1px solid #222;
+    }
+
+    .footer-btn {
+      flex: 1;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 12px;
+      color: #f0f0f0;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .footer-btn:active {
+      background: #252525;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      z-index: 100;
+      -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.active {
+      display: block;
+    }
+
+    .modal {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #111;
+      border-radius: 16px 16px 0 0;
+      padding: 20px;
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 101;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .modal.active {
+      transform: translateY(0);
+    }
+
+    .modal.center {
+      top: 50%;
+      bottom: auto;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      opacity: 0;
+      border-radius: 16px;
+      max-width: 320px;
+      padding-bottom: 20px;
+    }
+
+    .modal.center.active {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: #999;
+      font-size: 24px;
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .quantity-control {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      margin: 30px 0;
+    }
+
+    .stepper-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #1a1a1a;
+      border: 2px solid #333;
+      color: #f0f0f0;
+      font-size: 24px;
+      font-weight: 300;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .stepper-btn:active {
+      background: #252525;
+      transform: scale(0.95);
+    }
+
+    .quantity-display {
+      font-size: 36px;
+      font-weight: 700;
+      min-width: 120px;
+      text-align: center;
+    }
+
+    .step-info {
+      text-align: center;
+      font-size: 12px;
+      color: #777;
+      margin-top: -15px;
+      margin-bottom: 20px;
+    }
+
+    .macros-display {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .macro-item {
+      text-align: center;
+    }
+
+    .macro-label {
+      font-size: 10px;
+      color: #777;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .macro-value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .log-btn {
+      width: 100%;
+      background: #2a7d2e;
+      border: none;
+      border-radius: 8px;
+      padding: 14px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .log-btn:active {
+      background: #236b26;
+    }
+
+    .component-list {
+      margin: 20px 0;
+    }
+
+    .component-item {
+      background: #1a1a1a;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .component-name {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .component-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .component-stepper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .component-stepper-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #111;
+      border: 1px solid #333;
+      color: #f0f0f0;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .component-qty {
+      font-size: 16px;
+      font-weight: 600;
+      min-width: 80px;
+      text-align: center;
+    }
+
+    .component-step {
+      font-size: 10px;
+      color: #666;
+    }
+
+    .custom-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      color: #999;
+      font-weight: 500;
+    }
+
+    .form-input {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 12px;
+      color: #f0f0f0;
+      font-size: 15px;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #555;
+    }
+
+    .macro-inputs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .confirm-modal-content {
+      text-align: center;
+    }
+
+    .confirm-total {
+      font-size: 32px;
+      font-weight: 700;
+      color: #e8c547;
+      margin: 20px 0;
+    }
+
+    .confirm-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .confirm-btn {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .confirm-btn.cancel {
+      background: #1a1a1a;
+      color: #f0f0f0;
+      border: 1px solid #333;
+    }
+
+    .confirm-btn.confirm {
+      background: #2a7d2e;
+      color: white;
+    }
+
+    .confirm-btn:active {
+      opacity: 0.8;
+    }
+
+    .history-view {
+      display: none;
+      padding: 16px;
+    }
+
+    .history-view.active {
+      display: block;
+    }
+
+    .main-view {
+      display: block;
+    }
+
+    .main-view.hidden {
+      display: none;
+    }
+
+    .back-btn {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 10px 16px;
+      color: #f0f0f0;
+      font-size: 14px;
+      cursor: pointer;
+      margin-bottom: 16px;
+      display: inline-block;
+    }
+
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      background: #111;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .history-table th {
+      background: #1a1a1a;
+      padding: 8px 6px;
+      text-align: right;
+      font-weight: 600;
+      font-size: 11px;
+      color: #999;
+    }
+
+    .history-table th:first-child {
+      text-align: left;
+    }
+
+    .history-table td {
+      padding: 10px 6px;
+      text-align: right;
+      border-top: 1px solid #1a1a1a;
+    }
+
+    .history-table td:first-child {
+      text-align: left;
+    }
+
+    .avg-box {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .avg-title {
+      font-size: 13px;
+      color: #999;
+      margin-bottom: 8px;
+    }
+
+    .avg-values {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .avg-item {
+      text-align: center;
+    }
+
+    .avg-label {
+      font-size: 10px;
+      color: #777;
+      margin-bottom: 4px;
+    }
+
+    .avg-value {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .export-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .export-btn {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 12px;
+      color: #f0f0f0;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .all-items-list {
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+
+    .all-items-category {
+      margin-bottom: 16px;
+    }
+
+    .all-items-category-label {
+      font-size: 12px;
+      color: #888;
+      font-weight: 600;
+      margin-bottom: 8px;
+      padding-left: 4px;
+    }
+
+    .all-items-item {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.15s;
+    }
+
+    .all-items-item:active {
+      background: #252525;
+    }
+
+    .all-items-item-name {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .all-items-item-cal {
+      font-size: 12px;
+      color: #e8c547;
+    }
+
+    .empty-message {
+      text-align: center;
+      color: #666;
+      padding: 40px 20px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="main-view">
+    <div class="header">
+      <h1>NutriLog</h1>
+      <div class="date" id="currentDate"></div>
+    </div>
+
+    <div id="tilesContainer"></div>
+
+    <div class="action-buttons">
+      <button class="action-btn" id="allItemsBtn">📋 All Items</button>
+      <button class="action-btn" id="customEntryBtn">＋ Custom Entry</button>
+    </div>
+
+    <div class="log-section">
+      <div class="log-title">Today's Log</div>
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Cal</th>
+            <th>P</th>
+            <th>C</th>
+            <th>F</th>
+          </tr>
+        </thead>
+        <tbody id="logTableBody">
+          <tr class="total-row">
+            <td>TOTAL</td>
+            <td class="cal">0</td>
+            <td class="protein">0</td>
+            <td class="carbs">0</td>
+            <td class="fat">0</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer-buttons">
+      <button class="footer-btn" id="finishDayBtn">✓ Finish Day</button>
+      <button class="footer-btn" id="historyBtn">📊 History</button>
+    </div>
+  </div>
+
+  <div class="history-view" id="historyView">
+    <button class="back-btn" id="backBtn">← Back</button>
+    <div class="log-title">History</div>
+    <div id="avgBox"></div>
+    <table class="history-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Cal</th>
+          <th>P</th>
+          <th>C</th>
+          <th>F</th>
+        </tr>
+      </thead>
+      <tbody id="historyTableBody"></tbody>
+    </table>
+    <div class="export-buttons">
+      <button class="export-btn" id="exportCsvBtn">📤 Export CSV</button>
+      <button class="export-btn" id="exportJsonBtn">📋 Copy All Data (JSON)</button>
+    </div>
+  </div>
+
+  <!-- Single Item Modal -->
+  <div class="modal-overlay" id="singleItemOverlay"></div>
+  <div class="modal" id="singleItemModal">
+    <div class="modal-header">
+      <div class="modal-title" id="singleItemTitle"></div>
+      <button class="close-btn" id="closeSingleItem">✕</button>
+    </div>
+    <div class="quantity-control">
+      <button class="stepper-btn" id="decreaseQty">−</button>
+      <div class="quantity-display" id="qtyDisplay"></div>
+      <button class="stepper-btn" id="increaseQty">+</button>
+    </div>
+    <div class="step-info" id="stepInfo"></div>
+    <div class="macros-display">
+      <div class="macro-item">
+        <div class="macro-label">Cal</div>
+        <div class="macro-value cal" id="modalCal">0</div>
+      </div>
+      <div class="macro-item">
+        <div class="macro-label">Protein</div>
+        <div class="macro-value protein" id="modalProtein">0</div>
+      </div>
+      <div class="macro-item">
+        <div class="macro-label">Carbs</div>
+        <div class="macro-value carbs" id="modalCarbs">0</div>
+      </div>
+      <div class="macro-item">
+        <div class="macro-label">Fat</div>
+        <div class="macro-value fat" id="modalFat">0</div>
+      </div>
+    </div>
+    <button class="log-btn" id="logSingleItem">Log Item →</button>
+    <button class="log-btn" id="deleteCustomItem" style="display: none; background: #cc3333; margin-top: 8px;">Delete This Entry</button>
+  </div>
+
+  <!-- Combo Item Modal -->
+  <div class="modal-overlay" id="comboItemOverlay"></div>
+  <div class="modal" id="comboItemModal">
+    <div class="modal-header">
+      <div class="modal-title" id="comboItemTitle"></div>
+      <button class="close-btn" id="closeComboItem">✕</button>
+    </div>
+    <div class="component-list" id="componentList"></div>
+    <div class="macros-display">
+      <div class="macro-item">
+        <div class="macro-label">Cal</div>
+        <div class="macro-value cal" id="comboCal">0</div>
+      </div>
+      <div class="macro-item">
+        <div class="macro-label">Protein</div>
+        <div class="macro-value protein" id="comboProtein">0</div>
+      </div>
+      <div class="macro-item">
+        <div class="macro-label">Carbs</div>
+        <div class="macro-value carbs" id="comboCarbs">0</div>
+      </div>
+      <div class="macro-item">
+        <div class="macro-label">Fat</div>
+        <div class="macro-value fat" id="comboFat">0</div>
+      </div>
+    </div>
+    <button class="log-btn" id="logComboItem">Log Meal →</button>
+  </div>
+
+  <!-- Custom Entry Modal -->
+  <div class="modal-overlay" id="customEntryOverlay"></div>
+  <div class="modal" id="customEntryModal">
+    <div class="modal-header">
+      <div class="modal-title">Custom Entry</div>
+      <button class="close-btn" id="closeCustomEntry">✕</button>
+    </div>
+    <div class="custom-form">
+      <div class="form-group">
+        <label class="form-label">Food Name</label>
+        <input type="text" class="form-input" id="customName" placeholder="e.g., Butter Chicken">
+      </div>
+      <div class="macro-inputs">
+        <div class="form-group">
+          <label class="form-label">Calories</label>
+          <input type="number" class="form-input" id="customCal" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Protein (g)</label>
+          <input type="number" class="form-input" id="customProtein" value="0" min="0" step="0.1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Carbs (g)</label>
+          <input type="number" class="form-input" id="customCarbs" value="0" min="0" step="0.1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fat (g)</label>
+          <input type="number" class="form-input" id="customFat" value="0" min="0" step="0.1">
+        </div>
+      </div>
+      <button class="log-btn" id="logCustomItem">Log Custom →</button>
+    </div>
+  </div>
+
+  <!-- Confirm Modal -->
+  <div class="modal-overlay" id="confirmOverlay"></div>
+  <div class="modal center" id="confirmModal">
+    <div class="confirm-modal-content">
+      <div class="modal-title">Finish Day?</div>
+      <div class="confirm-total" id="confirmTotal">0 cal</div>
+      <div class="confirm-buttons">
+        <button class="confirm-btn cancel" id="cancelFinish">Cancel</button>
+        <button class="confirm-btn confirm" id="confirmFinish">Yes, Finish</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- All Items Modal -->
+  <div class="modal-overlay" id="allItemsOverlay"></div>
+  <div class="modal" id="allItemsModal">
+    <div class="modal-header">
+      <div class="modal-title">All Items</div>
+      <button class="close-btn" id="closeAllItems">✕</button>
+    </div>
+    <div class="all-items-list" id="allItemsList"></div>
+  </div>
+
+  <script>
+    // ============================================================================
+    // FOOD LIBRARY
+    // ============================================================================
+
+    const FOOD_LIBRARY = [
+      // Coffee
+      { id: 'instant-coffee', name: 'Instant Coffee (with skim milk)', short: 'Instant', cal: 20, p: 0, c: 5, f: 0, unit: 'serving', base: 1, step: 0.1, group: '☕ Coffee', groupClass: 'coffee' },
+      { id: 'flavio-cap', name: 'Flavio Cappuccino', short: 'Flavio', cal: 50, p: 2, c: 6, f: 1, unit: 'cup', base: 1, step: 0.1, group: '☕ Coffee', groupClass: 'coffee' },
+      { id: 'office-cap', name: 'Office Cappuccino', short: 'Office Cap', cal: 100, p: 4, c: 10, f: 5, unit: 'serving', base: 1, step: 0.1, group: '☕ Coffee', groupClass: 'coffee' },
+
+      // Combo Meals (moved right after Coffee)
+      {
+        id: 'protein-shake',
+        name: 'Protein Banana Shake',
+        short: 'Protein Shake',
+        group: '🍽️ Meals',
+        groupClass: 'meals',
+        isCombo: true,
+        components: [
+          { name: 'Skim Milk', cal: 90, p: 8.0, c: 13.0, f: 0.0, unit: 'ml', base: 240, defaultQty: 200, step: 10 },
+          { name: 'Whey Protein', cal: 120, p: 24.0, c: 3.0, f: 1.5, unit: 'scoop', base: 1, defaultQty: 1, step: 0.1 },
+          { name: 'Banana', cal: 92, p: 1.1, c: 23.0, f: 0.3, unit: 'g', base: 100, defaultQty: 115, step: 5 }
+        ]
+      },
+      {
+        id: 'banana-milkshake',
+        name: 'Banana Milkshake (no whey)',
+        short: 'Banana Shake',
+        group: '🍽️ Meals',
+        groupClass: 'meals',
+        isCombo: true,
+        components: [
+          { name: 'Skim Milk', cal: 90, p: 8.0, c: 13.0, f: 0.0, unit: 'ml', base: 240, defaultQty: 200, step: 10 },
+          { name: 'Banana', cal: 92, p: 1.1, c: 23.0, f: 0.3, unit: 'g', base: 100, defaultQty: 100, step: 5 }
+        ]
+      },
+      {
+        id: 'bread-cheese',
+        name: 'Bread + Cheese',
+        short: 'Bread+Cheese',
+        group: '🍽️ Meals',
+        groupClass: 'meals',
+        isCombo: true,
+        components: [
+          { name: 'Bread', cal: 60, p: 2.0, c: 11.0, f: 1.0, unit: 'slice', base: 1, defaultQty: 1, step: 0.1 },
+          { name: 'Cheese Slice', cal: 50, p: 2.0, c: 1.0, f: 4.0, unit: 'slice', base: 1, defaultQty: 1, step: 0.1 }
+        ]
+      },
+      { id: 'chicken-sandwich', name: 'Chicken Sandwich', short: 'Chkn Sndwch', cal: 245, p: 20.0, c: 30.0, f: 7.0, unit: 'sandwich', base: 1, step: 0.1, group: '🍽️ Meals', groupClass: 'meals' },
+
+      // Fruits (after Meals)
+      { id: 'banana', name: 'Banana', short: 'Banana', cal: 92, p: 1.1, c: 23.0, f: 0.3, unit: 'g', base: 100, step: 5, group: '🍌 Fruits', groupClass: 'fruits' },
+      { id: 'apple', name: 'Apple', short: 'Apple', cal: 52, p: 0.3, c: 14.0, f: 0.2, unit: 'g', base: 100, step: 10, group: '🍌 Fruits', groupClass: 'fruits' },
+      { id: 'orange', name: 'Orange', short: 'Orange', cal: 47, p: 0.9, c: 12.0, f: 0.1, unit: 'g', base: 100, step: 10, group: '🍌 Fruits', groupClass: 'fruits' },
+
+      // Snacks (after Fruits)
+      { id: 'peanuts', name: 'Peanuts', short: 'Peanuts', cal: 115, p: 5.0, c: 4.0, f: 10.0, unit: 'g', base: 20, step: 1, group: '🍫 Snacks', groupClass: 'snacks' },
+      { id: 'cashews', name: 'Cashews', short: 'Cashews', cal: 157, p: 5.2, c: 8.6, f: 12.4, unit: 'g', base: 28, step: 1, group: '🍫 Snacks', groupClass: 'snacks' },
+      { id: 'chewy-bar', name: 'Kirkland Chewy Protein Bar', short: 'Chewy Bar', cal: 190, p: 15.0, c: 21.0, f: 5.0, unit: 'bar', base: 1, step: 0.1, group: '🍫 Snacks', groupClass: 'snacks' },
+      { id: 'nut-bar', name: 'Kirkland Nut Bar', short: 'Nut Bar', cal: 200, p: 6.0, c: 17.0, f: 12.0, unit: 'bar', base: 1, step: 0.1, group: '🍫 Snacks', groupClass: 'snacks' },
+      { id: 'pretzels', name: 'Pretzels', short: 'Pretzels', cal: 170, p: 5.0, c: 35.0, f: 1.0, unit: 'bag', base: 1, step: 0.1, group: '🍫 Snacks', groupClass: 'snacks' },
+      { id: 'polo-mints', name: 'Polo Mints', short: 'Polo Mints', cal: 30, p: 0.0, c: 7.5, f: 0.0, unit: 'serving', base: 1, step: 0.1, group: '🍫 Snacks', groupClass: 'snacks' },
+
+      // Dairy
+      { id: 'yogurt', name: 'Yogurt (Light Greek)', short: 'Yogurt', cal: 80, p: 12.0, c: 8.0, f: 0.0, unit: 'cup', base: 1, step: 0.1, group: '🥛 Dairy', groupClass: 'dairy' },
+      { id: 'chobani', name: 'Chobani Light Greek', short: 'Chobani', cal: 110, p: 12.0, c: 15.0, f: 0.0, unit: 'cup', base: 1, step: 0.1, group: '🥛 Dairy', groupClass: 'dairy' },
+      { id: 'skim-milk', name: 'Skim Milk', short: 'Skim Milk', cal: 90, p: 8.0, c: 13.0, f: 0.0, unit: 'ml', base: 240, step: 10, group: '🥛 Dairy', groupClass: 'dairy' },
+      { id: 'almond-milk', name: 'Almond Milk (Unsweetened)', short: 'Almond Milk', cal: 30, p: 1.0, c: 1.0, f: 2.5, unit: 'ml', base: 240, step: 10, group: '🥛 Dairy', groupClass: 'dairy' },
+
+      // Ice Cream
+      { id: 'vanilla-ice', name: 'Vanilla Protein Ice Cream', short: 'Vanilla IC', cal: 229, p: 31.0, c: 17.3, f: 4.0, unit: 'pint', base: 1, step: 0.1, group: '🍨 Ice Cream', groupClass: 'icecream' },
+      { id: 'choco-ice', name: 'Chocolate Protein Ice Cream', short: 'Choco IC', cal: 243, p: 31.0, c: 18.5, f: 5.0, unit: 'pint', base: 1, step: 0.1, group: '🍨 Ice Cream', groupClass: 'icecream' },
+
+      // Run / Sports
+      { id: 'gu-gel', name: 'GU Gel', short: 'GU Gel', cal: 100, p: 0.0, c: 25.0, f: 0.0, unit: 'gel', base: 1, step: 0.1, group: '⚡ Run / Sports', groupClass: 'sports' },
+      { id: 'gatorade', name: 'Gatorade', short: 'Gatorade', cal: 80, p: 0.0, c: 21.0, f: 0.0, unit: 'bottle', base: 1, step: 0.1, group: '⚡ Run / Sports', groupClass: 'sports' },
+
+      // Sides / Other
+      { id: 'potato', name: 'Russet Potatoes', short: 'Potato', cal: 110, p: 3.0, c: 26.0, f: 0.1, unit: 'g', base: 148, step: 10, group: '🥔 Sides / Other', groupClass: 'sides', defaultQty: 350 },
+      { id: 'bread', name: 'Bread (Nature\'s Own)', short: 'Bread', cal: 60, p: 2.0, c: 11.0, f: 1.0, unit: 'slice', base: 1, step: 0.1, group: '🥔 Sides / Other', groupClass: 'sides' },
+      { id: 'cheese-slice', name: 'Cheese Slice (Great Value)', short: 'Cheese', cal: 50, p: 2.0, c: 1.0, f: 4.0, unit: 'slice', base: 1, step: 0.1, group: '🥔 Sides / Other', groupClass: 'sides' },
+      { id: 'sweet-chili', name: 'Sweet Chili Sauce', short: 'Chili Sauce', cal: 30, p: 0.0, c: 7.0, f: 0.0, unit: 'serving', base: 1, step: 0.1, group: '🥔 Sides / Other', groupClass: 'sides' },
+      { id: 'whey-protein', name: 'Whey Protein (ON)', short: 'Whey Scoop', cal: 120, p: 24.0, c: 3.0, f: 1.5, unit: 'scoop', base: 1, step: 0.1, group: '🥔 Sides / Other', groupClass: 'sides' }
+    ];
+
+    // ============================================================================
+    // STATE MANAGEMENT
+    // ============================================================================
+
+    let state = {
+      currentDate: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD
+      todayLog: [],
+      history: [],
+      customItems: [],
+      editingIndex: null,
+      currentItem: null,
+      currentComboQuantities: null
+    };
+
+    // ============================================================================
+    // LOCALSTORAGE HELPERS
+    // ============================================================================
+
+    function loadFromStorage() {
+      try {
+        const storedDate = localStorage.getItem('nutrilog_currentDate');
+        const storedLog = localStorage.getItem('nutrilog_todayLog');
+        const storedHistory = localStorage.getItem('nutrilog_history');
+        const storedCustom = localStorage.getItem('nutrilog_customItems');
+
+        if (storedDate) state.currentDate = storedDate;
+        if (storedLog) state.todayLog = JSON.parse(storedLog);
+        if (storedHistory) state.history = JSON.parse(storedHistory);
+        if (storedCustom) state.customItems = JSON.parse(storedCustom);
+      } catch (e) {
+        console.error('Failed to load from localStorage:', e);
+      }
+    }
+
+    function saveToStorage() {
+      try {
+        localStorage.setItem('nutrilog_currentDate', state.currentDate);
+        localStorage.setItem('nutrilog_todayLog', JSON.stringify(state.todayLog));
+        localStorage.setItem('nutrilog_history', JSON.stringify(state.history));
+        localStorage.setItem('nutrilog_customItems', JSON.stringify(state.customItems));
+      } catch (e) {
+        if (e.name === 'QuotaExceededError') {
+          alert('Storage full — please export your data and clear old history');
+        } else {
+          console.error('Failed to save to localStorage:', e);
+        }
+      }
+    }
+
+    // ============================================================================
+    // DATE ROLLOVER CHECK
+    // ============================================================================
+
+    function checkDateRollover() {
+      const today = new Date().toLocaleDateString('en-CA');
+
+      if (state.currentDate !== today) {
+        if (state.todayLog.length > 0) {
+          const total = calculateTotal(state.todayLog);
+          const confirmed = confirm(
+            `You have unfinished items from ${state.currentDate} (${total.cal} cal). Save to history and start fresh?`
+          );
+
+          if (confirmed) {
+            state.history.push({
+              date: state.currentDate,
+              cal: total.cal,
+              p: total.p,
+              c: total.c,
+              f: total.f
+            });
+          }
+        }
+
+        state.todayLog = [];
+        state.currentDate = today;
+        saveToStorage();
+        renderLog();
+      }
+
+      document.getElementById('currentDate').textContent = formatDisplayDate(today);
+    }
+
+    function formatDisplayDate(dateStr) {
+      const date = new Date(dateStr + 'T00:00:00');
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    // ============================================================================
+    // SCALING CALCULATIONS
+    // ============================================================================
+
+    function scaleNutrition(item, quantity) {
+      const ratio = quantity / item.base;
+      return {
+        cal: Math.round(item.cal * ratio),
+        p: Math.round(item.p * ratio * 10) / 10,
+        c: Math.round(item.c * ratio * 10) / 10,
+        f: Math.round(item.f * ratio * 10) / 10
+      };
+    }
+
+    function calculateComboTotal(item, quantities) {
+      let total = { cal: 0, p: 0, c: 0, f: 0 };
+
+      item.components.forEach((comp, index) => {
+        const qty = quantities[index];
+        const scaled = scaleNutrition(comp, qty);
+        total.cal += scaled.cal;
+        total.p += scaled.p;
+        total.c += scaled.c;
+        total.f += scaled.f;
+      });
+
+      total.p = Math.round(total.p * 10) / 10;
+      total.c = Math.round(total.c * 10) / 10;
+      total.f = Math.round(total.f * 10) / 10;
+
+      return total;
+    }
+
+    function calculateTotal(logItems) {
+      let total = { cal: 0, p: 0, c: 0, f: 0 };
+
+      logItems.forEach(item => {
+        total.cal += item.cal;
+        total.p += item.p;
+        total.c += item.c;
+        total.f += item.f;
+      });
+
+      total.p = Math.round(total.p * 10) / 10;
+      total.c = Math.round(total.c * 10) / 10;
+      total.f = Math.round(total.f * 10) / 10;
+
+      return total;
+    }
+
+    // ============================================================================
+    // RENDERING
+    // ============================================================================
+
+    function renderTiles() {
+      const container = document.getElementById('tilesContainer');
+      container.innerHTML = '';
+
+      const groups = {};
+      FOOD_LIBRARY.forEach(item => {
+        if (!groups[item.group]) groups[item.group] = [];
+        groups[item.group].push(item);
+      });
+
+      Object.keys(groups).forEach(groupName => {
+        const label = document.createElement('div');
+        label.className = 'category-label';
+        label.textContent = groupName;
+        container.appendChild(label);
+
+        const grid = document.createElement('div');
+        grid.className = groupName === '🍽️ Meals' || groupName === '🍨 Ice Cream' ? 'tiles-grid two-col' : 'tiles-grid';
+
+        groups[groupName].forEach(item => {
+          const tile = document.createElement('div');
+          tile.className = `tile ${item.groupClass}`;
+
+          const displayCal = item.isCombo
+            ? calculateComboTotal(item, item.components.map(c => c.defaultQty)).cal
+            : item.cal;
+
+          tile.innerHTML = `
+            <div class="tile-name">${item.short}</div>
+            <div class="tile-cal">${displayCal} cal</div>
+          `;
+
+          tile.addEventListener('click', () => openItemModal(item));
+          grid.appendChild(tile);
+        });
+
+        container.appendChild(grid);
+      });
+    }
+
+    function renderLog() {
+      const tbody = document.getElementById('logTableBody');
+      tbody.innerHTML = '';
+
+      state.todayLog.forEach((item, index) => {
+        const row = document.createElement('tr');
+        row.className = 'log-row';
+        row.dataset.index = index;
+
+        row.innerHTML = `
+          <td>
+            <div class="item-name">${item.name}</div>
+            <span class="item-detail">${item.detail}</span>
+          </td>
+          <td class="cal">${item.cal}</td>
+          <td class="protein">${item.p}</td>
+          <td class="carbs">${item.c}</td>
+          <td class="fat">${item.f}</td>
+        `;
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteLogItem(index);
+        });
+
+        row.appendChild(deleteBtn);
+        setupSwipeToDelete(row);
+
+        row.addEventListener('click', () => editLogItem(index));
+
+        tbody.appendChild(row);
+      });
+
+      const total = calculateTotal(state.todayLog);
+      const totalRow = document.createElement('tr');
+      totalRow.className = 'total-row';
+      totalRow.innerHTML = `
+        <td>TOTAL</td>
+        <td class="cal">${total.cal}</td>
+        <td class="protein">${total.p}</td>
+        <td class="carbs">${total.c}</td>
+        <td class="fat">${total.f}</td>
+      `;
+      tbody.appendChild(totalRow);
+    }
+
+    function setupSwipeToDelete(row) {
+      let startX = 0;
+      let currentX = 0;
+      let isSwiping = false;
+
+      row.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        isSwiping = true;
+      });
+
+      row.addEventListener('touchmove', (e) => {
+        if (!isSwiping) return;
+        currentX = e.touches[0].clientX;
+        const diff = startX - currentX;
+
+        if (diff > 30) {
+          row.classList.add('swiping');
+        } else {
+          row.classList.remove('swiping');
+        }
+      });
+
+      row.addEventListener('touchend', () => {
+        isSwiping = false;
+      });
+    }
+
+    function deleteLogItem(index) {
+      state.todayLog.splice(index, 1);
+      saveToStorage();
+      renderLog();
+    }
+
+    function editLogItem(index) {
+      const loggedItem = state.todayLog[index];
+      const item = findItemById(loggedItem.id);
+
+      if (!item) return;
+
+      state.editingIndex = index;
+
+      if (item.isCombo) {
+        openComboModal(item, loggedItem.comboQuantities);
+      } else {
+        openSingleModal(item, loggedItem.quantity);
+      }
+    }
+
+    function findItemById(id) {
+      let found = FOOD_LIBRARY.find(item => item.id === id);
+      if (!found) {
+        found = state.customItems.find(item => item.id === id);
+      }
+      return found;
+    }
+
+    // ============================================================================
+    // MODALS
+    // ============================================================================
+
+    function openItemModal(item) {
+      state.editingIndex = null;
+
+      if (item.isCombo) {
+        const defaultQtys = {};
+        item.components.forEach((comp, i) => {
+          defaultQtys[i] = comp.defaultQty;
+        });
+        openComboModal(item, defaultQtys);
+      } else {
+        openSingleModal(item, item.defaultQty || item.base);
+      }
+    }
+
+    function openSingleModal(item, initialQty) {
+      state.currentItem = item;
+      let quantity = initialQty !== undefined ? initialQty : (item.defaultQty || item.base);
+
+      const overlay = document.getElementById('singleItemOverlay');
+      const modal = document.getElementById('singleItemModal');
+      const title = document.getElementById('singleItemTitle');
+      const qtyDisplay = document.getElementById('qtyDisplay');
+      const stepInfo = document.getElementById('stepInfo');
+      const logBtn = document.getElementById('logSingleItem');
+      const deleteBtn = document.getElementById('deleteCustomItem');
+
+      title.textContent = item.name;
+      stepInfo.textContent = `±${item.step}${item.unit} per tap`;
+
+      // Show delete button only for custom items (from all items view, not when editing)
+      const isCustom = item.id && item.id.startsWith('custom-');
+      if (isCustom && state.editingIndex === null) {
+        deleteBtn.style.display = 'block';
+      } else {
+        deleteBtn.style.display = 'none';
+      }
+
+      if (state.editingIndex !== null) {
+        logBtn.textContent = 'Update Item →';
+      } else {
+        logBtn.textContent = 'Log Item →';
+      }
+
+      function updateDisplay() {
+        const isGrams = item.unit === 'g' || item.unit === 'ml';
+        qtyDisplay.textContent = isGrams ? `${quantity}${item.unit}` : `${quantity.toFixed(1)} ${item.unit}`;
+
+        const scaled = scaleNutrition(item, quantity);
+        document.getElementById('modalCal').textContent = scaled.cal;
+        document.getElementById('modalProtein').textContent = scaled.p;
+        document.getElementById('modalCarbs').textContent = scaled.c;
+        document.getElementById('modalFat').textContent = scaled.f;
+      }
+
+      updateDisplay();
+
+      document.getElementById('increaseQty').onclick = () => {
+        quantity += item.step;
+        updateDisplay();
+      };
+
+      document.getElementById('decreaseQty').onclick = () => {
+        quantity = Math.max(item.step, quantity - item.step);
+        updateDisplay();
+      };
+
+      logBtn.onclick = () => {
+        const scaled = scaleNutrition(item, quantity);
+        const isGrams = item.unit === 'g' || item.unit === 'ml';
+        const detail = isGrams ? `${quantity}${item.unit}` : `${quantity.toFixed(1)} ${item.unit}`;
+
+        const logEntry = {
+          id: item.id,
+          name: item.name,
+          detail: detail,
+          cal: scaled.cal,
+          p: scaled.p,
+          c: scaled.c,
+          f: scaled.f,
+          quantity: quantity,
+          comboQuantities: null
+        };
+
+        if (state.editingIndex !== null) {
+          state.todayLog[state.editingIndex] = logEntry;
+          state.editingIndex = null;
+        } else {
+          state.todayLog.push(logEntry);
+        }
+
+        saveToStorage();
+        renderLog();
+        closeModal('singleItemModal', 'singleItemOverlay');
+      };
+
+      overlay.classList.add('active');
+      modal.classList.add('active');
+    }
+
+    function openComboModal(item, initialQuantities) {
+      state.currentItem = item;
+      state.currentComboQuantities = { ...initialQuantities };
+
+      const overlay = document.getElementById('comboItemOverlay');
+      const modal = document.getElementById('comboItemModal');
+      const title = document.getElementById('comboItemTitle');
+      const componentList = document.getElementById('componentList');
+      const logBtn = document.getElementById('logComboItem');
+
+      title.textContent = item.name;
+
+      if (state.editingIndex !== null) {
+        logBtn.textContent = 'Update Meal →';
+      } else {
+        logBtn.textContent = 'Log Meal →';
+      }
+
+      componentList.innerHTML = '';
+
+      function updateComboDisplay() {
+        const total = calculateComboTotal(item, state.currentComboQuantities);
+        document.getElementById('comboCal').textContent = total.cal;
+        document.getElementById('comboProtein').textContent = total.p;
+        document.getElementById('comboCarbs').textContent = total.c;
+        document.getElementById('comboFat').textContent = total.f;
+      }
+
+      item.components.forEach((comp, index) => {
+        const compDiv = document.createElement('div');
+        compDiv.className = 'component-item';
+
+        const isGrams = comp.unit === 'g' || comp.unit === 'ml';
+        const qtyText = isGrams
+          ? `${state.currentComboQuantities[index]}${comp.unit}`
+          : `${state.currentComboQuantities[index].toFixed(1)} ${comp.unit}`;
+
+        compDiv.innerHTML = `
+          <div class="component-name">${comp.name}</div>
+          <div class="component-controls">
+            <div class="component-stepper">
+              <button class="component-stepper-btn" data-index="${index}" data-action="decrease">−</button>
+              <div class="component-qty" id="compQty${index}">${qtyText}</div>
+              <button class="component-stepper-btn" data-index="${index}" data-action="increase">+</button>
+            </div>
+            <div class="component-step">±${comp.step}${comp.unit}</div>
+          </div>
+        `;
+
+        componentList.appendChild(compDiv);
+      });
+
+      updateComboDisplay();
+
+      componentList.addEventListener('click', (e) => {
+        const btn = e.target.closest('.component-stepper-btn');
+        if (!btn) return;
+
+        const index = parseInt(btn.dataset.index);
+        const action = btn.dataset.action;
+        const comp = item.components[index];
+
+        if (action === 'increase') {
+          state.currentComboQuantities[index] += comp.step;
+        } else {
+          state.currentComboQuantities[index] = Math.max(comp.step, state.currentComboQuantities[index] - comp.step);
+        }
+
+        const isGrams = comp.unit === 'g' || comp.unit === 'ml';
+        const qtyText = isGrams
+          ? `${state.currentComboQuantities[index]}${comp.unit}`
+          : `${state.currentComboQuantities[index].toFixed(1)} ${comp.unit}`;
+
+        document.getElementById(`compQty${index}`).textContent = qtyText;
+        updateComboDisplay();
+      });
+
+      logBtn.onclick = () => {
+        const total = calculateComboTotal(item, state.currentComboQuantities);
+
+        const details = item.components.map((comp, i) => {
+          const qty = state.currentComboQuantities[i];
+          const isGrams = comp.unit === 'g' || comp.unit === 'ml';
+          return isGrams ? `${qty}${comp.unit}` : `${qty.toFixed(1)} ${comp.unit}`;
+        }).join(', ');
+
+        const logEntry = {
+          id: item.id,
+          name: item.name,
+          detail: details,
+          cal: total.cal,
+          p: total.p,
+          c: total.c,
+          f: total.f,
+          quantity: null,
+          comboQuantities: { ...state.currentComboQuantities }
+        };
+
+        if (state.editingIndex !== null) {
+          state.todayLog[state.editingIndex] = logEntry;
+          state.editingIndex = null;
+        } else {
+          state.todayLog.push(logEntry);
+        }
+
+        saveToStorage();
+        renderLog();
+        closeModal('comboItemModal', 'comboItemOverlay');
+      };
+
+      overlay.classList.add('active');
+      modal.classList.add('active');
+    }
+
+    function openCustomModal() {
+      const overlay = document.getElementById('customEntryOverlay');
+      const modal = document.getElementById('customEntryModal');
+
+      document.getElementById('customName').value = '';
+      document.getElementById('customCal').value = '0';
+      document.getElementById('customProtein').value = '0';
+      document.getElementById('customCarbs').value = '0';
+      document.getElementById('customFat').value = '0';
+
+      overlay.classList.add('active');
+      modal.classList.add('active');
+    }
+
+    function logCustomEntry() {
+      const name = document.getElementById('customName').value.trim();
+      const cal = parseInt(document.getElementById('customCal').value) || 0;
+      const p = parseFloat(document.getElementById('customProtein').value) || 0;
+      const c = parseFloat(document.getElementById('customCarbs').value) || 0;
+      const f = parseFloat(document.getElementById('customFat').value) || 0;
+
+      if (!name) {
+        alert('Please enter a food name');
+        return;
+      }
+
+      const customId = `custom-${Date.now()}`;
+      const short = name.length > 12 ? name.substring(0, 10) + '...' : name;
+
+      const customItem = {
+        id: customId,
+        name: name,
+        short: short,
+        cal: cal,
+        p: p,
+        c: c,
+        f: f,
+        unit: 'serving',
+        base: 1,
+        step: 0.1,
+        group: 'Miscellaneous',
+        groupClass: 'sides'
+      };
+
+      state.customItems.push(customItem);
+
+      const logEntry = {
+        id: customId,
+        name: name,
+        detail: '1.0 serving',
+        cal: cal,
+        p: p,
+        c: c,
+        f: f,
+        quantity: 1,
+        comboQuantities: null
+      };
+
+      state.todayLog.push(logEntry);
+      saveToStorage();
+      renderLog();
+      closeModal('customEntryModal', 'customEntryOverlay');
+    }
+
+    function openAllItemsModal() {
+      const overlay = document.getElementById('allItemsOverlay');
+      const modal = document.getElementById('allItemsModal');
+      const list = document.getElementById('allItemsList');
+
+      list.innerHTML = '';
+
+      const allItems = [...FOOD_LIBRARY, ...state.customItems];
+      const groups = {};
+
+      allItems.forEach(item => {
+        if (!groups[item.group]) groups[item.group] = [];
+        groups[item.group].push(item);
+      });
+
+      Object.keys(groups).forEach(groupName => {
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'all-items-category';
+
+        const label = document.createElement('div');
+        label.className = 'all-items-category-label';
+        label.textContent = groupName;
+        categoryDiv.appendChild(label);
+
+        groups[groupName].forEach(item => {
+          const itemDiv = document.createElement('div');
+          itemDiv.className = 'all-items-item';
+
+          const displayCal = item.isCombo
+            ? calculateComboTotal(item, item.components.map(c => c.defaultQty)).cal
+            : item.cal;
+
+          itemDiv.innerHTML = `
+            <div class="all-items-item-name">${item.name}</div>
+            <div class="all-items-item-cal">${displayCal} cal</div>
+          `;
+
+          itemDiv.addEventListener('click', () => {
+            closeModal('allItemsModal', 'allItemsOverlay');
+            setTimeout(() => openItemModal(item), 300);
+          });
+
+          categoryDiv.appendChild(itemDiv);
+        });
+
+        list.appendChild(categoryDiv);
+      });
+
+      overlay.classList.add('active');
+      modal.classList.add('active');
+    }
+
+    function closeModal(modalId, overlayId) {
+      document.getElementById(modalId).classList.remove('active');
+      document.getElementById(overlayId).classList.remove('active');
+    }
+
+    // ============================================================================
+    // FINISH DAY
+    // ============================================================================
+
+    function openFinishDayModal() {
+      if (state.todayLog.length === 0) {
+        alert('Nothing to save');
+        return;
+      }
+
+      const total = calculateTotal(state.todayLog);
+      document.getElementById('confirmTotal').textContent = `${total.cal} cal`;
+
+      document.getElementById('confirmOverlay').classList.add('active');
+      document.getElementById('confirmModal').classList.add('active');
+    }
+
+    function finishDay() {
+      const total = calculateTotal(state.todayLog);
+
+      state.history.push({
+        date: state.currentDate,
+        cal: total.cal,
+        p: total.p,
+        c: total.c,
+        f: total.f
+      });
+
+      state.todayLog = [];
+      state.currentDate = new Date().toLocaleDateString('en-CA');
+
+      saveToStorage();
+      renderLog();
+      checkDateRollover();
+
+      closeModal('confirmModal', 'confirmOverlay');
+    }
+
+    // ============================================================================
+    // HISTORY VIEW
+    // ============================================================================
+
+    function showHistory() {
+      document.querySelector('.main-view').classList.add('hidden');
+      document.getElementById('historyView').classList.add('active');
+      renderHistory();
+    }
+
+    function hideHistory() {
+      document.querySelector('.main-view').classList.remove('hidden');
+      document.getElementById('historyView').classList.remove('active');
+    }
+
+    function renderHistory() {
+      const tbody = document.getElementById('historyTableBody');
+      tbody.innerHTML = '';
+
+      const sortedHistory = [...state.history].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      sortedHistory.forEach(entry => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${formatDisplayDate(entry.date)}</td>
+          <td class="cal">${entry.cal}</td>
+          <td class="protein">${entry.p}</td>
+          <td class="carbs">${entry.c}</td>
+          <td class="fat">${entry.f}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      if (sortedHistory.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-message">No history yet</td></tr>';
+      }
+
+      // Calculate 7-day average
+      const avgBox = document.getElementById('avgBox');
+
+      if (sortedHistory.length >= 1) {
+        const last7 = sortedHistory.slice(0, Math.min(7, sortedHistory.length));
+        let totalCal = 0, totalP = 0, totalC = 0, totalF = 0;
+
+        last7.forEach(entry => {
+          totalCal += entry.cal;
+          totalP += entry.p;
+          totalC += entry.c;
+          totalF += entry.f;
+        });
+
+        const count = last7.length;
+        const avgCal = Math.round(totalCal / count);
+        const avgP = Math.round((totalP / count) * 10) / 10;
+        const avgC = Math.round((totalC / count) * 10) / 10;
+        const avgF = Math.round((totalF / count) * 10) / 10;
+
+        avgBox.innerHTML = `
+          <div class="avg-title">7-Day Rolling Average (${count} days)</div>
+          <div class="avg-values">
+            <div class="avg-item">
+              <div class="avg-label">Cal</div>
+              <div class="avg-value cal">${avgCal}</div>
+            </div>
+            <div class="avg-item">
+              <div class="avg-label">Protein</div>
+              <div class="avg-value protein">${avgP}</div>
+            </div>
+            <div class="avg-item">
+              <div class="avg-label">Carbs</div>
+              <div class="avg-value carbs">${avgC}</div>
+            </div>
+            <div class="avg-item">
+              <div class="avg-label">Fat</div>
+              <div class="avg-value fat">${avgF}</div>
+            </div>
+          </div>
+        `;
+      } else {
+        avgBox.innerHTML = '';
+      }
+    }
+
+    function exportCSV() {
+      if (state.history.length === 0) {
+        alert('No history to export');
+        return;
+      }
+
+      let csv = 'Date,Calories,Protein,Carbs,Fat\n';
+
+      const sortedHistory = [...state.history].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      sortedHistory.forEach(entry => {
+        csv += `${entry.date},${entry.cal},${entry.p},${entry.c},${entry.f}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nutrilog-history-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportJSON() {
+      const data = {
+        currentDate: state.currentDate,
+        todayLog: state.todayLog,
+        history: state.history,
+        customItems: state.customItems
+      };
+
+      const json = JSON.stringify(data, null, 2);
+
+      navigator.clipboard.writeText(json).then(() => {
+        alert('All data copied to clipboard (JSON format)');
+      }).catch(() => {
+        alert('Failed to copy to clipboard');
+      });
+    }
+
+    // ============================================================================
+    // EVENT LISTENERS
+    // ============================================================================
+
+    document.getElementById('allItemsBtn').addEventListener('click', openAllItemsModal);
+    document.getElementById('customEntryBtn').addEventListener('click', openCustomModal);
+    document.getElementById('finishDayBtn').addEventListener('click', openFinishDayModal);
+    document.getElementById('historyBtn').addEventListener('click', showHistory);
+    document.getElementById('backBtn').addEventListener('click', hideHistory);
+
+    document.getElementById('closeSingleItem').addEventListener('click', () => closeModal('singleItemModal', 'singleItemOverlay'));
+    document.getElementById('closeComboItem').addEventListener('click', () => closeModal('comboItemModal', 'comboItemOverlay'));
+    document.getElementById('closeCustomEntry').addEventListener('click', () => closeModal('customEntryModal', 'customEntryOverlay'));
+    document.getElementById('closeAllItems').addEventListener('click', () => closeModal('allItemsModal', 'allItemsOverlay'));
+
+    document.getElementById('deleteCustomItem').addEventListener('click', () => {
+      if (!state.currentItem || !state.currentItem.id.startsWith('custom-')) return;
+
+      if (confirm(`Delete "${state.currentItem.name}" permanently?`)) {
+        state.customItems = state.customItems.filter(item => item.id !== state.currentItem.id);
+        saveToStorage();
+        closeModal('singleItemModal', 'singleItemOverlay');
+      }
+    });
+
+    document.getElementById('singleItemOverlay').addEventListener('click', () => closeModal('singleItemModal', 'singleItemOverlay'));
+    document.getElementById('comboItemOverlay').addEventListener('click', () => closeModal('comboItemModal', 'comboItemOverlay'));
+    document.getElementById('customEntryOverlay').addEventListener('click', () => closeModal('customEntryModal', 'customEntryOverlay'));
+    document.getElementById('confirmOverlay').addEventListener('click', () => closeModal('confirmModal', 'confirmOverlay'));
+    document.getElementById('allItemsOverlay').addEventListener('click', () => closeModal('allItemsModal', 'allItemsOverlay'));
+
+    document.getElementById('logCustomItem').addEventListener('click', logCustomEntry);
+    document.getElementById('cancelFinish').addEventListener('click', () => closeModal('confirmModal', 'confirmOverlay'));
+    document.getElementById('confirmFinish').addEventListener('click', finishDay);
+
+    document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
+    document.getElementById('exportJsonBtn').addEventListener('click', exportJSON);
+
+    // ============================================================================
+    // INITIALIZATION
+    // ============================================================================
+
+    loadFromStorage();
+    checkDateRollover();
+    renderTiles();
+    renderLog();
+
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').then(() => {
+        console.log('Service Worker registered');
+      }).catch(err => {
+        console.error('Service Worker registration failed:', err);
+      });
+    }
+  </script>
+</body>
+</html>
