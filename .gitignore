@@ -13,3 +13,11 @@
 # Temporary files
 *.tmp
 *.log
+
+# Token info (DO NOT COMMIT)
+.token-info.txt
+
+# Local preview files (for testing)
+preview.html
+test-local.sh
+check_data.html
