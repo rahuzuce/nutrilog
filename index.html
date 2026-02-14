@@ -57,6 +57,47 @@
       color: #999;
     }
 
+    .fixed-total-bar {
+      background: #1a1a1a;
+      border-bottom: 2px solid #333;
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: calc(44px + env(safe-area-inset-top));
+      z-index: 50;
+    }
+
+    .total-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #888;
+      letter-spacing: 0.5px;
+    }
+
+    .total-values {
+      display: flex;
+      gap: 12px;
+    }
+
+    .total-item {
+      display: flex;
+      align-items: baseline;
+      gap: 2px;
+    }
+
+    .total-value {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .total-unit {
+      font-size: 10px;
+      color: #666;
+      text-transform: uppercase;
+    }
+
     .category-label {
       font-size: 12px;
       color: #888;
@@ -330,6 +371,7 @@
       opacity: 0;
       border-radius: 16px;
       max-width: 320px;
+      max-height: 90vh;
       padding-bottom: 20px;
       pointer-events: none;
     }
@@ -794,6 +836,29 @@
       <div class="date" id="currentDate"></div>
     </div>
 
+    <!-- Fixed Total Bar -->
+    <div class="fixed-total-bar">
+      <div class="total-label">TOTAL</div>
+      <div class="total-values">
+        <div class="total-item">
+          <span class="total-value cal" id="fixedTotalCal">0</span>
+          <span class="total-unit">cal</span>
+        </div>
+        <div class="total-item">
+          <span class="total-value protein" id="fixedTotalP">0</span>
+          <span class="total-unit">p</span>
+        </div>
+        <div class="total-item">
+          <span class="total-value carbs" id="fixedTotalC">0</span>
+          <span class="total-unit">c</span>
+        </div>
+        <div class="total-item">
+          <span class="total-value fat" id="fixedTotalF">0</span>
+          <span class="total-unit">f</span>
+        </div>
+      </div>
+    </div>
+
     <div id="tilesContainer"></div>
 
     <div class="action-buttons">
@@ -851,12 +916,12 @@
       <button class="export-btn" id="exportCsvBtn">📤 Export CSV</button>
       <button class="export-btn" id="exportJsonBtn">📋 Copy All Data (JSON)</button>
     </div>
-    <div style="text-align: center; color: #555; font-size: 11px; padding: 16px 0 8px;">v1.2.0</div>
+    <div style="text-align: center; color: #555; font-size: 11px; padding: 16px 0 8px;">v1.2.1</div>
   </div>
 
   <!-- Single Item Modal -->
   <div class="modal-overlay" id="singleItemOverlay"></div>
-  <div class="modal" id="singleItemModal">
+  <div class="modal center" id="singleItemModal">
     <div class="modal-header">
       <div class="modal-title" id="singleItemTitle"></div>
       <button class="close-btn" id="closeSingleItem">✕</button>
@@ -891,7 +956,7 @@
 
   <!-- Combo Item Modal -->
   <div class="modal-overlay" id="comboItemOverlay"></div>
-  <div class="modal" id="comboItemModal">
+  <div class="modal center" id="comboItemModal">
     <div class="modal-header">
       <div class="modal-title" id="comboItemTitle"></div>
       <button class="close-btn" id="closeComboItem">✕</button>
@@ -1338,6 +1403,12 @@
         <td class="fat">${Math.round(total.f)}</td>
       `;
       tbody.appendChild(totalRow);
+
+      // Update fixed total bar at top
+      document.getElementById('fixedTotalCal').textContent = total.cal;
+      document.getElementById('fixedTotalP').textContent = Math.round(total.p);
+      document.getElementById('fixedTotalC').textContent = Math.round(total.c);
+      document.getElementById('fixedTotalF').textContent = Math.round(total.f);
     }
 
     function setupSwipeToDelete(row) {
