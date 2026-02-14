@@ -851,7 +851,7 @@
       <button class="export-btn" id="exportCsvBtn">📤 Export CSV</button>
       <button class="export-btn" id="exportJsonBtn">📋 Copy All Data (JSON)</button>
     </div>
-    <div style="text-align: center; color: #555; font-size: 11px; padding: 16px 0 8px;">v1.1.3</div>
+    <div style="text-align: center; color: #555; font-size: 11px; padding: 16px 0 8px;">v1.2.0</div>
   </div>
 
   <!-- Single Item Modal -->
@@ -1127,12 +1127,43 @@
         const storedHistory = localStorage.getItem('nutrilog_history');
         const storedCustom = localStorage.getItem('nutrilog_customItems');
 
-        if (storedDate) state.currentDate = storedDate;
-        if (storedLog) state.todayLog = JSON.parse(storedLog);
-        if (storedHistory) state.history = JSON.parse(storedHistory);
-        if (storedCustom) state.customItems = JSON.parse(storedCustom);
+        // Validate and load current date
+        if (storedDate && /^\d{4}-\d{2}-\d{2}$/.test(storedDate)) {
+          state.currentDate = storedDate;
+        }
+
+        // Validate and load today's log
+        if (storedLog) {
+          const parsed = JSON.parse(storedLog);
+          if (Array.isArray(parsed)) {
+            state.todayLog = parsed.filter(item =>
+              item && typeof item === 'object' && item.id && typeof item.cal === 'number'
+            );
+          }
+        }
+
+        // Validate and load history
+        if (storedHistory) {
+          const parsed = JSON.parse(storedHistory);
+          if (Array.isArray(parsed)) {
+            state.history = parsed.filter(entry =>
+              entry && typeof entry === 'object' && entry.date && typeof entry.cal === 'number'
+            );
+          }
+        }
+
+        // Validate and load custom items
+        if (storedCustom) {
+          const parsed = JSON.parse(storedCustom);
+          if (Array.isArray(parsed)) {
+            state.customItems = parsed.filter(item =>
+              item && typeof item === 'object' && item.id && item.name
+            );
+          }
+        }
       } catch (e) {
         console.error('Failed to load from localStorage:', e);
+        alert('Warning: Some stored data was corrupted and has been cleaned up.');
       }
     }
 
@@ -1344,9 +1375,19 @@
 
     function editLogItem(index) {
       const loggedItem = state.todayLog[index];
+
+      // Validate logged item exists and has required data
+      if (!loggedItem || !loggedItem.id) {
+        alert('Error: Invalid log entry. Please delete and re-add this item.');
+        return;
+      }
+
       const item = findItemById(loggedItem.id);
 
-      if (!item) return;
+      if (!item) {
+        alert('Error: Could not find this item in the food library. It may have been deleted.');
+        return;
+      }
 
       state.editingIndex = index;
 
@@ -1765,7 +1806,11 @@
       });
 
       state.todayLog = [];
-      state.currentDate = new Date().toLocaleDateString('en-CA');
+
+      // Set next logging date to the day after selected date
+      const nextDate = new Date(selectedDate + 'T00:00:00');
+      nextDate.setDate(nextDate.getDate() + 1);
+      state.currentDate = nextDate.toLocaleDateString('en-CA');
 
       saveToStorage();
       renderLog();
