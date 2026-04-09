@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v1.2.4';
+const CACHE_VERSION = 'v1.2.5';
 const CACHE_NAME = `nutrilog-${CACHE_VERSION}`;
 
 const urlsToCache = [
@@ -35,6 +35,13 @@ self.addEventListener('activate', (event) => {
   );
   // Take control of all pages immediately
   return self.clients.claim();
+});
+
+// Listen for skip waiting message from the app
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Fetch event - stale-while-revalidate strategy
