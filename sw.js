@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v1.2.6';
+const CACHE_VERSION = 'v1.2.7';
 const CACHE_NAME = `nutrilog-${CACHE_VERSION}`;
 
 const urlsToCache = [
@@ -16,8 +16,8 @@ self.addEventListener('install', (event) => {
       return cache.addAll(urlsToCache);
     })
   );
-  // Force the waiting service worker to become the active service worker
-  self.skipWaiting();
+  // Don't call skipWaiting here — let the app show the update banner first
+  // skipWaiting is triggered via postMessage when the user taps the banner
 });
 
 // Activate event - clean up old caches
