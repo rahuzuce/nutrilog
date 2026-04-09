@@ -954,7 +954,7 @@
       <button class="export-btn" id="exportCsvBtn">📤 Export CSV</button>
       <button class="export-btn" id="exportJsonBtn">📋 Copy All Data (JSON)</button>
     </div>
-    <div style="text-align: center; color: #555; font-size: 11px; padding: 16px 0 8px;">v1.2.9</div>
+    <div style="text-align: center; color: #555; font-size: 11px; padding: 16px 0 8px;">v1.3.0</div>
   </div>
 
   <!-- Single Item Modal -->
@@ -2290,43 +2290,51 @@
 
     // Register service worker with update detection
     let waitingWorker = null;
+    let refreshing = false;
 
     function applyUpdate() {
-      if (waitingWorker) {
-        waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-        // Reload after a short delay to ensure the new worker activates
-        setTimeout(() => window.location.reload(), 500);
-      }
+      if (!waitingWorker) return;
+      // Tell the waiting worker to take over
+      waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+      // Hide the banner immediately for feedback
+      document.getElementById('updateBanner').classList.remove('show');
+      // Force reload after a brief delay (fallback if controllerchange doesn't fire on iOS)
+      setTimeout(() => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      }, 800);
     }
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').then((reg) => {
-        console.log('Service Worker registered');
+      // When a new service worker takes control, reload once
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
 
-        // Check for waiting worker on load (update installed during previous visit)
+      navigator.serviceWorker.register('sw.js').then((reg) => {
+        // Check for a waiting worker immediately (installed during a previous visit)
         if (reg.waiting) {
           waitingWorker = reg.waiting;
           document.getElementById('updateBanner').classList.add('show');
         }
 
-        // Listen for new updates
+        // Listen for new service worker installing
         reg.addEventListener('updatefound', () => {
           const newWorker = reg.installing;
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // New version installed, waiting to activate
               waitingWorker = newWorker;
               document.getElementById('updateBanner').classList.add('show');
             }
           });
         });
       }).catch(err => {
-        console.error('Service Worker registration failed:', err);
-      });
-
-      // When the new service worker takes over, reload the page
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload();
+        console.error('SW registration failed:', err);
       });
     }
   </script>

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v1.2.9';
+const CACHE_VERSION = 'v1.3.0';
 const CACHE_NAME = `nutrilog-${CACHE_VERSION}`;
 
 const urlsToCache = [
@@ -9,61 +9,59 @@ const urlsToCache = [
   './icon-512.png'
 ];
 
-// Install event - cache all resources
+// Install: fetch fresh copies from network (bypass HTTP cache), store in new versioned cache
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(urlsToCache);
-    })
-  );
-  // Don't call skipWaiting here — let the app show the update banner first
-  // skipWaiting is triggered via postMessage when the user taps the banner
-});
-
-// Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
+        urlsToCache.map((url) =>
+          fetch(url, { cache: 'no-store' }).then((response) => cache.put(url, response))
+        )
       );
     })
   );
-  // Take control of all pages immediately
+  // Do NOT skipWaiting here — let the app show the update banner first
+});
+
+// Activate: delete all old caches, take control immediately
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((names) =>
+      Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
+    )
+  );
   return self.clients.claim();
 });
 
-// Listen for skip waiting message from the app
+// Skip waiting when user taps the update banner
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
 
-// Fetch event - stale-while-revalidate strategy
+// Fetch: network-first for HTML (always fresh), cache-first for assets (fast loads)
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.match(event.request).then((cachedResponse) => {
-        // Return cached version immediately
-        const fetchPromise = fetch(event.request).then((networkResponse) => {
-          // Update cache with new version in the background
-          if (networkResponse && networkResponse.status === 200) {
-            cache.put(event.request, networkResponse.clone());
-          }
-          return networkResponse;
-        }).catch(() => {
-          // Network fetch failed, return cached version if available
-          return cachedResponse;
-        });
+  const url = new URL(event.request.url);
+  const isHTML = event.request.mode === 'navigate' ||
+                 url.pathname.endsWith('.html') ||
+                 url.pathname.endsWith('/');
 
-        // Return cached response if available, otherwise wait for network
-        return cachedResponse || fetchPromise;
-      });
-    })
-  );
+  if (isHTML) {
+    // Network-first for HTML — always try to get fresh content
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' })
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+  } else {
+    // Cache-first for images, manifest, etc. — fast and rarely change
+    event.respondWith(
+      caches.match(event.request).then((cached) => cached || fetch(event.request))
+    );
+  }
 });
