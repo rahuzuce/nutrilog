@@ -2294,6 +2294,8 @@
     function applyUpdate() {
       if (waitingWorker) {
         waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+        // Reload after a short delay to ensure the new worker activates
+        setTimeout(() => window.location.reload(), 500);
       }
     }
 
