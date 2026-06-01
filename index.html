@@ -57,6 +57,43 @@
       color: #999;
     }
 
+    .date-selector {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      color: #999;
+      cursor: pointer;
+      padding: 6px 8px;
+      margin: -6px -8px;
+      border-radius: 8px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .date-selector:active {
+      background: #222;
+    }
+
+    .date-caret {
+      font-size: 10px;
+      color: #666;
+    }
+
+    /* Native date input overlays the selector so the OS picker opens on tap,
+       but stays invisible — the formatted date + caret remain the visible UI. */
+    .date-selector input[type="date"] {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      border: 0;
+      margin: 0;
+      padding: 0;
+      cursor: pointer;
+    }
+
     .update-banner {
       display: none;
       background: #1a6b3c;
@@ -868,7 +905,11 @@
   <div class="main-view">
     <div class="header">
       <h1>NutriLog</h1>
-      <div class="date" id="currentDate"></div>
+      <div class="date-selector" id="dateSelector" onclick="openDatePicker()">
+        <span id="currentDate"></span>
+        <span class="date-caret">▾</span>
+        <input type="date" id="datePicker" aria-label="Select logging date">
+      </div>
     </div>
 
     <!-- Update Banner -->
@@ -954,7 +995,7 @@
       <button class="export-btn" id="exportCsvBtn">📤 Export CSV</button>
       <button class="export-btn" id="exportJsonBtn">📋 Copy All Data (JSON)</button>
     </div>
-    <div style="text-align: center; color: #555; font-size: 11px; padding: 16px 0 8px;">v1.3.2</div>
+    <div style="text-align: center; color: #555; font-size: 11px; padding: 16px 0 8px;">v1.3.3</div>
   </div>
 
   <!-- Single Item Modal -->
@@ -1291,6 +1332,26 @@
 
     function updateDateDisplay() {
       document.getElementById('currentDate').textContent = formatDisplayDate(state.currentDate);
+    }
+
+    // Tap the date in the header to jump to any date (e.g. catch up after being
+    // away). Skipping days is fine — this just sets which date the current log
+    // will be saved under.
+    function openDatePicker() {
+      const picker = document.getElementById('datePicker');
+      picker.value = state.currentDate;
+      if (typeof picker.showPicker === 'function') {
+        try { picker.showPicker(); return; } catch (e) { /* fall through */ }
+      }
+      picker.focus();
+      picker.click();
+    }
+
+    function changeLoggingDate(newDate) {
+      if (!newDate || !/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return;
+      state.currentDate = newDate;
+      saveToStorage();
+      updateDateDisplay();
     }
 
     function formatDisplayDate(dateStr) {
@@ -2239,6 +2300,10 @@
     // ============================================================================
     // EVENT LISTENERS
     // ============================================================================
+
+    document.getElementById('datePicker').addEventListener('change', function () {
+      changeLoggingDate(this.value);
+    });
 
     document.getElementById('allItemsBtn').addEventListener('click', openAllItemsModal);
     document.getElementById('customEntryBtn').addEventListener('click', openCustomModal);
